@@ -164,7 +164,28 @@
     letter-spacing:.02em;
   }
   input[type=text]:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  select{
+    width:100%;
+    font-family:"IBM Plex Sans",sans-serif;
+    font-size:20px;
+    font-weight:600;
+    padding:14px 14px;
+    border-radius:10px;
+    border:1.5px solid var(--border);
+    background:var(--surface-2);
+    color:var(--ink);
+    letter-spacing:.02em;
+    appearance:none;
+    background-image:linear-gradient(45deg, transparent 50%, var(--ink-muted) 50%), linear-gradient(135deg, var(--ink-muted) 50%, transparent 50%);
+    background-position:calc(100% - 22px) center, calc(100% - 16px) center;
+    background-size:6px 6px, 6px 6px;
+    background-repeat:no-repeat;
+  }
+  select:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:var(--accent); }
+  select:disabled{ opacity:.6; }
   .field{ display:flex; flex-direction:column; gap:6px; }
+  .error-text{ margin:0; font-size:13px; color:var(--danger); line-height:1.5; }
+  .link-btn{ background:none; border:none; padding:0; color:var(--danger); font-weight:700; text-decoration:underline; cursor:pointer; font-size:inherit; }
 
   button.primary{
     background:var(--accent);
@@ -289,9 +310,15 @@
       <p>Antes de capturar viajes, indica qué Mixer estás operando. Solo se pide una vez por dispositivo.</p>
       <div class="field">
         <label for="inputMixer">Número de Mixer</label>
-        <input type="text" id="inputMixer" placeholder="Ej. CMCRE01" autocomplete="off" autocapitalize="characters">
+        <select id="inputMixer">
+          <option value="">Cargando lista de Mixers…</option>
+        </select>
       </div>
-      <button class="primary" id="btnGuardarMixer" type="button">Guardar y continuar</button>
+      <button class="primary" id="btnGuardarMixer" type="button" disabled>Guardar y continuar</button>
+      <p class="error-text" id="mixerLoadError" hidden>
+        No se pudo cargar la lista de Mixers. Revisa tu conexión y
+        <button type="button" class="link-btn" id="btnReintentarMixers">reintenta</button>.
+      </p>
     </div>
   </section>
 
@@ -360,6 +387,10 @@
   var elTripDoneBanner = document.getElementById("tripDoneBanner");
   var elToast = document.getElementById("toast");
   var elToastMsg = document.getElementById("toastMsg");
+  var elBtnGuardarMixer = document.getElementById("btnGuardarMixer");
+  var elMixerLoadError = document.getElementById("mixerLoadError");
+
+  var mixersDisponibles = [];
 
   function getMixer(){ return localStorage.getItem(LS_MIXER) || ""; }
   function setMixer(v){ localStorage.setItem(LS_MIXER, v); }
@@ -392,6 +423,42 @@
     }).then(function(resp){
       return resp.json();
     });
+  }
+
+  // Lista real de Mixers activos (hoja "Mixers" del Sheet, publicada por
+  // sincronizar_celular.py en cada corrida) - el Mixer se ELIGE de aqui,
+  // nunca se escribe libre, para no repetir el caso real del 2026-09-11:
+  // un operador tecleo "CMCRE002" en vez de "CMCRE02" y el viaje no se
+  // pudo enlazar hasta corregirlo a mano en el Sheet.
+  function cargarMixers(){
+    elBtnGuardarMixer.disabled = true;
+    elMixerLoadError.hidden = true;
+    elInputMixer.innerHTML = "<option value=\"\">Cargando lista de Mixers…</option>";
+
+    return fetch(APPS_SCRIPT_URL + "?tipo=mixers")
+      .then(function(resp){ return resp.json(); })
+      .then(function(lista){
+        mixersDisponibles = Array.isArray(lista) ? lista : [];
+        var mixerActual = getMixer();
+        elInputMixer.innerHTML = "<option value=\"\">Selecciona tu Mixer…</option>" +
+          mixersDisponibles.map(function(m){
+            return "<option value=\"" + m + "\">" + m + "</option>";
+          }).join("");
+        elBtnGuardarMixer.disabled = false;
+
+        // El Mixer ya guardado en este telefono pudo quedar invalido (de
+        // antes de este cambio, o si se dio de baja) - se corrige aqui en
+        // vez de dejarlo pasar silencioso.
+        if (mixerActual && mixersDisponibles.indexOf(mixerActual) === -1){
+          clearMixer();
+          showToast("Tu Mixer guardado (" + mixerActual + ") ya no es valido. Selecciona uno de la lista.");
+          render();
+        }
+      })
+      .catch(function(){
+        elInputMixer.innerHTML = "<option value=\"\">No se pudo cargar</option>";
+        elMixerLoadError.hidden = false;
+      });
   }
 
   function render(){
@@ -525,13 +592,14 @@
   }
 
   document.getElementById("btnGuardarMixer").addEventListener("click", function(){
-    var v = elInputMixer.value.trim().toUpperCase();
-    if (!v){ showToast("Escribe el número de Mixer."); return; }
+    var v = elInputMixer.value;
+    if (!v){ showToast("Selecciona tu Mixer de la lista."); return; }
     setMixer(v);
     render();
   });
-  elInputMixer.addEventListener("keydown", function(e){
-    if (e.key === "Enter") document.getElementById("btnGuardarMixer").click();
+
+  document.getElementById("btnReintentarMixers").addEventListener("click", function(){
+    cargarMixers();
   });
 
   document.getElementById("btnCambiarMixer").addEventListener("click", function(){
@@ -586,6 +654,7 @@
   });
 
   render();
+  cargarMixers();
 })();
 </script>
 </body>
