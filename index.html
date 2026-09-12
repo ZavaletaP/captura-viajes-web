@@ -265,6 +265,9 @@
     width:100%;
   }
 
+  .cancel-wrap{ text-align:center; margin-top:16px; }
+  .cancel-wrap .link-btn{ font-size:13px; }
+
   .toast{
     position:fixed; left:16px; right:16px; bottom:18px;
     max-width:448px; margin:0 auto;
@@ -346,6 +349,9 @@
         Viaje completado y registrado.
         <button class="primary" id="btnNuevoViajeDespuesDeCompletado" type="button">Registrar siguiente Remisión</button>
       </div>
+      <div class="cancel-wrap" id="cancelWrap">
+        <button type="button" class="link-btn" id="btnCancelarViaje">Cancelar viaje</button>
+      </div>
     </div>
   </section>
 
@@ -385,6 +391,7 @@
   var elTripRemision = document.getElementById("tripRemision");
   var elStepsList = document.getElementById("stepsList");
   var elTripDoneBanner = document.getElementById("tripDoneBanner");
+  var elCancelWrap = document.getElementById("cancelWrap");
   var elToast = document.getElementById("toast");
   var elToastMsg = document.getElementById("toastMsg");
   var elBtnGuardarMixer = document.getElementById("btnGuardarMixer");
@@ -544,6 +551,7 @@
     });
 
     elTripDoneBanner.hidden = !allDone;
+    elCancelWrap.hidden = allDone;
   }
 
   function formatHora(iso){
@@ -651,6 +659,23 @@
 
   document.getElementById("btnNuevoViajeDespuesDeCompletado").addEventListener("click", function(){
     clearTrip();
+    render();
+  });
+
+  // Salida de emergencia: si un paso no se puede registrar (la fila del
+  // puente ya no existe, quedo mal ligada, o no hay conexion), antes no
+  // habia forma de abandonar el viaje y el telefono se quedaba atorado
+  // (caso real 2026-09-12, CMCRE11/894327). Cancelar SIEMPRE libera el
+  // telefono, aunque el intento de limpiar la fila en el Sheet falle o no
+  // haya red - no bloquea la salida esperando esa respuesta.
+  document.getElementById("btnCancelarViaje").addEventListener("click", function(){
+    var trip = getTrip();
+    if (!trip) return;
+    if (!confirm("¿Cancelar el seguimiento de la Remisión " + trip.remision + "? Los pasos ya registrados no se pierden, pero este teléfono deja de seguir este viaje.")) return;
+
+    enviar({ accion: "cancelar", mixer: getMixer(), remision: trip.remision }).catch(function(){});
+    clearTrip();
+    showToast("Viaje cancelado. Puedes iniciar una nueva Remisión.");
     render();
   });
 
