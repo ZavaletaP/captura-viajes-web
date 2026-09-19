@@ -249,6 +249,25 @@
   .step.done .num{ background:var(--success); color:#fff; }
   .step.done .action button{ background:transparent; color:var(--success); cursor:default; font-size:18px; }
 
+  /* --- "No lo registré a tiempo": presets de minutos para el paso actual --- */
+  li.step-antes{ text-align:center; margin-top:-2px; }
+  li.step-antes .link-btn{ font-size:12px; }
+  li.preset-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:-2px; }
+  li.preset-row button.preset-btn{
+    flex:1 1 auto;
+    border:1px solid var(--border);
+    background:var(--surface-2);
+    color:var(--ink);
+    border-radius:9px;
+    padding:10px 8px;
+    font-family:"IBM Plex Sans",sans-serif;
+    font-weight:600;
+    font-size:13px;
+    cursor:pointer;
+  }
+  li.preset-row button.preset-btn:active{ transform:scale(.97); }
+  li.preset-row .link-btn{ flex:1 1 100%; text-align:center; font-size:12px; margin-top:2px; }
+
   .trip-done-banner{
     margin-top:16px;
     text-align:center;
@@ -499,6 +518,7 @@
 
     var allDone = true;
     var currentAssigned = false;
+    var currentStepObj = null;
 
     STEPS.forEach(function(step, idx){
       var done = !!trip.pasos[step.key];
@@ -506,7 +526,7 @@
 
       var prevDone = idx === 0 ? true : !!trip.pasos[STEPS[idx-1].key];
       var isCurrent = !done && prevDone && !currentAssigned;
-      if (isCurrent) currentAssigned = true;
+      if (isCurrent) { currentAssigned = true; currentStepObj = step; }
 
       var li = document.createElement("li");
       li.className = "step " + (done ? "done" : (isCurrent ? "current" : "locked"));
@@ -552,6 +572,51 @@
 
     elTripDoneBanner.hidden = !allDone;
     elCancelWrap.hidden = allDone;
+
+    // "No lo registré a tiempo": para el paso actual, ofrece registrar con
+    // una hora estimada ("hace N minutos") en vez de "ahora" - para cuando
+    // se le olvidó al operador, se le apagó el telefono, etc. La hora real
+    // la calcula sincronizar_celular.py restando esos minutos a la hora de
+    // Excel al sincronizar (no a la del telefono), y el viaje queda
+    // marcado para que un supervisor lo revise antes de contar como dato
+    // definitivo (ver MOD_OPT_TripEvents.bas, 2026-09-19).
+    if (currentStepObj){
+      if (!presetsAbiertos){
+        var liAntes = document.createElement("li");
+        liAntes.className = "step-antes";
+        var linkAntes = document.createElement("button");
+        linkAntes.type = "button";
+        linkAntes.className = "link-btn";
+        linkAntes.textContent = "No lo registré a tiempo";
+        linkAntes.addEventListener("click", function(){
+          presetsAbiertos = true;
+          render();
+        });
+        liAntes.appendChild(linkAntes);
+        elStepsList.appendChild(liAntes);
+      } else {
+        var liPresets = document.createElement("li");
+        liPresets.className = "preset-row";
+        [5, 10, 15, 30].forEach(function(min){
+          var pb = document.createElement("button");
+          pb.type = "button";
+          pb.className = "preset-btn";
+          pb.textContent = "Hace " + min + " min";
+          pb.addEventListener("click", function(){ registrarPaso(currentStepObj, min); });
+          liPresets.appendChild(pb);
+        });
+        var linkCancelarPreset = document.createElement("button");
+        linkCancelarPreset.type = "button";
+        linkCancelarPreset.className = "link-btn";
+        linkCancelarPreset.textContent = "Cancelar";
+        linkCancelarPreset.addEventListener("click", function(){
+          presetsAbiertos = false;
+          render();
+        });
+        liPresets.appendChild(linkCancelarPreset);
+        elStepsList.appendChild(liPresets);
+      }
+    }
   }
 
   function formatHora(iso){
@@ -562,8 +627,9 @@
   }
 
   var enviando = false;
+  var presetsAbiertos = false;
 
-  function registrarPaso(step){
+  function registrarPaso(step, minutosAtras){
     if (enviando) return;
     var trip = getTrip();
     if (!trip) return;
@@ -572,17 +638,27 @@
     enviando = true;
     deshabilitarBotones(true);
 
-    enviar({
+    var payload = {
       accion: "actualizar",
       mixer: getMixer(),
       remision: trip.remision,
       campo: step.campo,
       timestamp: ts
-    }).then(function(res){
+    };
+    if (minutosAtras){ payload.minutosAtras = minutosAtras; }
+
+    enviar(payload).then(function(res){
       enviando = false;
       deshabilitarBotones(false);
       if (res && res.ok){
-        trip.pasos[step.key] = ts;
+        // Con minutosAtras, esta hora local es solo una referencia
+        // aproximada para el propio telefono (formatHora la usa para
+        // mostrarla en la lista) - la hora real la calcula
+        // sincronizar_celular.py con el reloj de Excel, no con este.
+        trip.pasos[step.key] = minutosAtras
+          ? new Date(Date.now() - minutosAtras * 60000).toISOString()
+          : ts;
+        presetsAbiertos = false;
         setTrip(trip);
         render();
       } else {
@@ -596,8 +672,13 @@
   }
 
   function deshabilitarBotones(disabled){
-    var btns = elStepsList.querySelectorAll(".step.current .action button");
-    btns.forEach(function(b){ b.disabled = disabled; b.textContent = disabled ? "Enviando…" : "Registrar"; });
+    var btnRegistrar = elStepsList.querySelector(".step.current .action button");
+    if (btnRegistrar){
+      btnRegistrar.disabled = disabled;
+      btnRegistrar.textContent = disabled ? "Enviando…" : "Registrar";
+    }
+    var presetBtns = elStepsList.querySelectorAll(".preset-row button");
+    presetBtns.forEach(function(b){ b.disabled = disabled; });
   }
 
   document.getElementById("btnGuardarMixer").addEventListener("click", function(){
@@ -641,6 +722,7 @@
       btnIniciar.disabled = false;
       btnIniciar.textContent = "Iniciar viaje";
       if (res && res.ok){
+        presetsAbiertos = false;
         setTrip({ remision: remision, pasos: {} });
         render();
       } else {
@@ -658,6 +740,7 @@
   });
 
   document.getElementById("btnNuevoViajeDespuesDeCompletado").addEventListener("click", function(){
+    presetsAbiertos = false;
     clearTrip();
     render();
   });
@@ -674,6 +757,7 @@
     if (!confirm("¿Cancelar el seguimiento de la Remisión " + trip.remision + "? Los pasos ya registrados no se pierden, pero este teléfono deja de seguir este viaje.")) return;
 
     enviar({ accion: "cancelar", mixer: getMixer(), remision: trip.remision }).catch(function(){});
+    presetsAbiertos = false;
     clearTrip();
     showToast("Viaje cancelado. Puedes iniciar una nueva Remisión.");
     render();
