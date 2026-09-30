@@ -304,6 +304,34 @@
   .toast.show{ transform:translateY(0); }
   .toast button{ background:none;border:none;color:inherit;font-weight:700;cursor:pointer; }
 
+  /* --- Operador de bomba --- */
+  .link-neutral{ background:none; border:none; padding:0; color:var(--ink-muted); font-weight:600; text-decoration:underline; cursor:pointer; font-size:13px; }
+  .role-switch{ text-align:center; margin-top:14px; }
+  #screenBomba .card, #screenServicios .card, #screenServicio .card{ display:flex; flex-direction:column; gap:14px; }
+  #screenBomba p, #screenServicios p{ margin:0; color:var(--ink-muted); font-size:14px; line-height:1.5; }
+  .section-title{ font-size:12px; font-weight:700; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.08em; margin:4px 0 -4px; }
+  .svc-card{
+    display:flex; align-items:center; gap:12px; justify-content:space-between;
+    border:1px solid var(--border); background:var(--surface-2); border-radius:12px; padding:14px;
+  }
+  .svc-card .info{ min-width:0; flex:1; }
+  .svc-card .pedido{ font-family:"Big Shoulders Display",sans-serif; font-weight:800; font-size:22px; font-variant-numeric:tabular-nums; }
+  .svc-card .meta{ font-size:12px; color:var(--ink-muted); margin-top:1px; }
+  .svc-card button{ flex:0 0 auto; }
+  .tag{ display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--accent-dim); color:var(--accent); margin-left:6px; vertical-align:middle; }
+  button.secondary{
+    background:var(--surface-2); color:var(--ink); border:1px solid var(--border);
+    border-radius:10px; padding:12px 16px; font-family:"IBM Plex Sans",sans-serif;
+    font-weight:700; font-size:14px; cursor:pointer;
+  }
+  button.secondary:disabled{ opacity:.6; cursor:default; }
+  .row-2{ display:flex; gap:10px; }
+  .row-2 > *{ flex:1 1 0; min-width:0; }
+  .linea-box{ border:1px solid var(--border); border-radius:12px; padding:12px; background:var(--surface-2); display:flex; flex-direction:column; gap:10px; }
+  .linea-box .linea-head{ display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .linea-box .linea-head .t{ font-weight:700; font-size:16px; }
+  .linea-box .linea-head .s{ font-size:12px; color:var(--ink-muted); }
+
   .footer-note{
     text-align:center;
     margin-top:22px;
@@ -341,6 +369,94 @@
         No se pudo cargar la lista de Mixers. Revisa tu conexión y
         <button type="button" class="link-btn" id="btnReintentarMixers">reintenta</button>.
       </p>
+      <div class="role-switch">
+        <button type="button" class="link-neutral" id="btnSoyBombero">Soy operador de bomba</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenBomba" hidden>
+    <div class="card">
+      <p>Indica qué bomba estás operando. Solo se pide una vez por dispositivo.</p>
+      <div class="field">
+        <label for="inputBomba">Bomba</label>
+        <select id="inputBomba">
+          <option value="">Cargando lista de bombas…</option>
+        </select>
+      </div>
+      <button class="primary" id="btnGuardarBomba" type="button" disabled>Guardar y continuar</button>
+      <p class="error-text" id="bombaLoadError" hidden>
+        No se pudo cargar la lista de bombas. Revisa tu conexión y
+        <button type="button" class="link-btn" id="btnReintentarBombas">reintenta</button>.
+      </p>
+      <div class="role-switch">
+        <button type="button" class="link-neutral" id="btnSoyMixer1">Soy operador de mixer</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenServicios" hidden>
+    <div class="card">
+      <div class="section-title">Servicios de hoy</div>
+      <div id="listaServicios"></div>
+      <p id="sinServicios" hidden>No hay servicios programados para tu bomba hoy.</p>
+      <button class="secondary" id="btnActualizarServicios" type="button">Actualizar lista</button>
+      <div class="section-title">Servicio externo</div>
+      <p>Para dar servicio de bomba a un mixer de otra empresa, escribe el Pedido MBE que generamos al vender el servicio.</p>
+      <div class="field">
+        <label for="inputPedidoExterno">Pedido MBE</label>
+        <input type="text" id="inputPedidoExterno" placeholder="Ej. 344003" autocomplete="off" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="inputClienteExterno">Cliente (opcional)</label>
+        <input type="text" id="inputClienteExterno" placeholder="Nombre del cliente" autocomplete="off">
+      </div>
+      <button class="primary" id="btnCrearExterno" type="button">Crear servicio externo</button>
+      <div class="role-switch">
+        <button type="button" class="link-neutral" id="btnSoyMixer2">Soy operador de mixer</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="screenServicio" hidden>
+    <div class="card">
+      <div class="trip-head">
+        <div>
+          <div class="label">Pedido MBE</div>
+          <div class="value" id="svcPedido">—</div>
+        </div>
+        <button type="button" class="link-neutral" id="btnVolverServicios">‹ Servicios</button>
+      </div>
+      <div class="field">
+        <label for="inputRemisionBomba">Remisión de la Bomba</label>
+        <div class="row-2">
+          <input type="text" id="inputRemisionBomba" placeholder="Ej. 0001234" autocomplete="off" inputmode="numeric">
+          <button class="secondary" id="btnGuardarRemisionBomba" type="button">Guardar</button>
+        </div>
+      </div>
+      <ol class="steps" id="svcSteps"></ol>
+      <div id="bloqueExternos" hidden>
+        <div class="section-title">Mixers externos</div>
+        <div id="listaLineas"></div>
+        <div class="linea-box" id="formLinea">
+          <div class="field">
+            <label for="inputMixerExterno">Económico o placas del mixer</label>
+            <input type="text" id="inputMixerExterno" placeholder="Opcional" autocomplete="off">
+          </div>
+          <div class="row-2">
+            <div class="field">
+              <label for="inputM3Externo">m³</label>
+              <input type="text" id="inputM3Externo" placeholder="Ej. 7" autocomplete="off" inputmode="decimal">
+            </div>
+            <div class="field">
+              <label for="inputRemisionExterno">Remisión</label>
+              <input type="text" id="inputRemisionExterno" placeholder="Opcional" autocomplete="off">
+            </div>
+          </div>
+          <button class="primary" id="btnAgregarMixer" type="button">Agregar mixer</button>
+        </div>
+      </div>
+      <p id="notaNuestra" hidden class="error-text" style="color:var(--ink-muted)">Los mixers propios se registran con su propia app; la bomba toma sus tiempos de ahí.</p>
     </div>
   </section>
 
@@ -488,6 +604,8 @@
   }
 
   function render(){
+    if (getRol() === "bomba"){ renderBomba(); return; }
+    ocultarPantallasBomba();
     var mixer = getMixer();
     if (!mixer){
       elMixerBadge.hidden = true;
@@ -693,6 +811,7 @@
   });
 
   document.getElementById("btnCambiarMixer").addEventListener("click", function(){
+    if (getRol() === "bomba"){ cambiarBomba(); return; }
     if (getTrip()){
       showToast("Termina o registra el viaje actual antes de cambiar de Mixer.");
       return;
@@ -763,8 +882,480 @@
     render();
   });
 
+
+  /* ============================================================
+     OPERADOR DE BOMBA (2026-09-30, fase 4b del modulo de Bombas)
+     ------------------------------------------------------------
+     Mismo patron que el operador de mixer: cada hora se registra con
+     "Registrar" (ahora) o "No lo registre a tiempo" (hace N minutos, que
+     el puente resta con su propio reloj). El bombero elige su bomba, ve sus
+     servicios de hoy (los publica sincronizar_celular.py) o crea uno
+     externo con el Pedido MBE que generamos al venderle la bomba. En el
+     servicio captura, una sola vez, la Remision de la Bomba, el servicio
+     listo en obra y el inicio del servicio; en un servicio Externos agrega
+     cada mixer ajeno y toca sus seis hitos. Los mixers propios no se
+     capturan aqui: su linea la arma Excel desde el viaje.
+     ============================================================ */
+  var LS_ROL = "captura_viajes_rol";
+  var LS_BOMBA = "captura_viajes_bomba";
+  var LS_SERVICIO = "captura_viajes_servicio";
+
+  var HORAS_SERVICIO = [
+    { key: "ServicioListo",  label: "Servicio listo en obra" },
+    { key: "InicioServicio", label: "Inicio del servicio" }
+  ];
+  var HITOS_BOMBA = [
+    { key: "SalidaPlanta",    label: "Salida de planta" },
+    { key: "LlegadaObra",     label: "Llegada a obra" },
+    { key: "InicioDescarga",  label: "Inicia descarga" },
+    { key: "TerminaDescarga", label: "Termina descarga" },
+    { key: "SaleObra",        label: "Sale de obra" },
+    { key: "RegresaPlanta",   label: "Regresa a planta" }
+  ];
+
+  var elScreenBomba = document.getElementById("screenBomba");
+  var elScreenServicios = document.getElementById("screenServicios");
+  var elScreenServicio = document.getElementById("screenServicio");
+  var elInputBomba = document.getElementById("inputBomba");
+  var elBtnGuardarBomba = document.getElementById("btnGuardarBomba");
+  var elBombaLoadError = document.getElementById("bombaLoadError");
+
+  var bombasDisponibles = [];
+  var servicios = [];
+  var servicioActual = null;
+  var lineas = [];
+  var presetAbierto = "";
+  var ocupadoBomba = false;
+
+  function getRol(){ return localStorage.getItem(LS_ROL) || ""; }
+  function setRol(v){ if (v) localStorage.setItem(LS_ROL, v); else localStorage.removeItem(LS_ROL); }
+  function getBomba(){ return localStorage.getItem(LS_BOMBA) || ""; }
+  function setBomba(v){ localStorage.setItem(LS_BOMBA, v); }
+  function clearBomba(){ localStorage.removeItem(LS_BOMBA); localStorage.removeItem(LS_SERVICIO); }
+
+  function ocultarPantallasBomba(){
+    elScreenBomba.hidden = true;
+    elScreenServicios.hidden = true;
+    elScreenServicio.hidden = true;
+  }
+
+  function pedirJSON(consulta){
+    return fetch(APPS_SCRIPT_URL + "?" + consulta).then(function(resp){ return resp.json(); });
+  }
+
+  function idUnico(){
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return "L" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  function cambiarARol(rol){
+    setRol(rol);
+    presetAbierto = "";
+    render();
+    if (rol === "bomba"){
+      if (!getBomba()) cargarBombas(); else cargarServicios();
+    } else {
+      cargarMixers();
+    }
+  }
+
+  function cambiarBomba(){
+    clearBomba();
+    servicioActual = null;
+    servicios = [];
+    lineas = [];
+    render();
+    cargarBombas();
+  }
+
+  function cargarBombas(){
+    elBtnGuardarBomba.disabled = true;
+    elBombaLoadError.hidden = true;
+    elInputBomba.innerHTML = "";
+    var cargando = document.createElement("option");
+    cargando.value = ""; cargando.textContent = "Cargando lista de bombas…";
+    elInputBomba.appendChild(cargando);
+
+    return pedirJSON("tipo=bombas").then(function(lista){
+      bombasDisponibles = Array.isArray(lista) ? lista : [];
+      elInputBomba.innerHTML = "";
+      var primera = document.createElement("option");
+      primera.value = ""; primera.textContent = "Selecciona tu bomba…";
+      elInputBomba.appendChild(primera);
+      bombasDisponibles.forEach(function(b){
+        var o = document.createElement("option");
+        o.value = b; o.textContent = b;
+        elInputBomba.appendChild(o);
+      });
+      elBtnGuardarBomba.disabled = false;
+    }).catch(function(){
+      elInputBomba.innerHTML = "";
+      var err = document.createElement("option");
+      err.value = ""; err.textContent = "No se pudo cargar";
+      elInputBomba.appendChild(err);
+      elBombaLoadError.hidden = false;
+    });
+  }
+
+  function cargarServicios(){
+    var bomba = getBomba();
+    if (!bomba) return Promise.resolve();
+    return pedirJSON("tipo=servicios_bomba&bomba=" + encodeURIComponent(bomba)).then(function(lista){
+      servicios = Array.isArray(lista) ? lista : [];
+      if (servicioActual){
+        var vigente = servicios.filter(function(x){ return x.Clave === servicioActual.Clave; })[0];
+        if (vigente) servicioActual = vigente;
+      }
+      renderBomba();
+    }).catch(function(){
+      showToast("No se pudo actualizar la lista de servicios. Revisa tu conexión.");
+    });
+  }
+
+  function cargarLineas(){
+    if (!servicioActual) return Promise.resolve();
+    return pedirJSON("tipo=tiempos_bomba&clave=" + encodeURIComponent(servicioActual.Clave)).then(function(lista){
+      lineas = Array.isArray(lista) ? lista : [];
+      renderBomba();
+    }).catch(function(){
+      showToast("No se pudo cargar los mixers del servicio. Revisa tu conexión.");
+    });
+  }
+
+  function abrirServicio(clave){
+    var s = servicios.filter(function(x){ return x.Clave === clave; })[0];
+    if (!s) return;
+    servicioActual = s;
+    localStorage.setItem(LS_SERVICIO, clave);
+    lineas = [];
+    presetAbierto = "";
+    renderBomba();
+    if (s.Servicio === "Externos") cargarLineas();
+  }
+
+  function renderBomba(){
+    elMixerBadge.hidden = false;
+    elScreenMixer.hidden = true;
+    elScreenNuevo.hidden = true;
+    elScreenTrip.hidden = true;
+    var bomba = getBomba();
+    if (!bomba){
+      elMixerBadge.hidden = true;
+      ocultarPantallasBomba();
+      elScreenBomba.hidden = false;
+      return;
+    }
+    elMixerBadgeId.textContent = bomba;
+    if (!servicioActual){
+      ocultarPantallasBomba();
+      elScreenServicios.hidden = false;
+      renderServicios();
+      return;
+    }
+    ocultarPantallasBomba();
+    elScreenServicio.hidden = false;
+    renderServicio();
+  }
+
+  function renderServicios(){
+    var cont = document.getElementById("listaServicios");
+    cont.innerHTML = "";
+    document.getElementById("sinServicios").hidden = servicios.length > 0;
+    servicios.forEach(function(s){
+      var card = document.createElement("div");
+      card.className = "svc-card";
+      card.style.marginBottom = "10px";
+      var info = document.createElement("div");
+      info.className = "info";
+      var ped = document.createElement("div");
+      ped.className = "pedido";
+      ped.textContent = s.Pedido;
+      var tag = document.createElement("span");
+      tag.className = "tag";
+      tag.textContent = s.Servicio;
+      ped.appendChild(tag);
+      var meta = document.createElement("div");
+      meta.className = "meta";
+      var partes = [];
+      if (s.Cliente) partes.push(s.Cliente);
+      if (s.HoraSolicitada) partes.push("Bomba lista a las " + s.HoraSolicitada);
+      meta.textContent = partes.join(" · ");
+      info.appendChild(ped);
+      info.appendChild(meta);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "primary";
+      btn.textContent = "Abrir";
+      btn.addEventListener("click", function(){ abrirServicio(s.Clave); });
+      card.appendChild(info);
+      card.appendChild(btn);
+      cont.appendChild(card);
+    });
+  }
+
+  // Una fila de paso con el mismo aspecto que las del viaje del mixer, y su
+  // "No lo registre a tiempo" (presets de minutos) si es el paso actual.
+  // idFila identifica la fila para saber cual tiene abiertos sus presets.
+  function agregarPaso(ol, num, label, valorIso, esActual, idFila, onRegistrar){
+    var done = !!valorIso;
+    var li = document.createElement("li");
+    li.className = "step " + (done ? "done" : (esActual ? "current" : "locked"));
+    var n = document.createElement("div");
+    n.className = "num";
+    n.textContent = done ? "✓" : String(num);
+    var info = document.createElement("div");
+    info.className = "info";
+    var nm = document.createElement("div");
+    nm.className = "name";
+    nm.textContent = label;
+    info.appendChild(nm);
+    if (done){
+      var t = document.createElement("div");
+      t.className = "time";
+      t.textContent = formatHora(valorIso);
+      info.appendChild(t);
+    }
+    var action = document.createElement("div");
+    action.className = "action";
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = done ? "✓" : "Registrar";
+    if (done || !esActual) btn.disabled = true;
+    else btn.addEventListener("click", function(){ onRegistrar(0); });
+    action.appendChild(btn);
+    li.appendChild(n); li.appendChild(info); li.appendChild(action);
+    ol.appendChild(li);
+
+    if (esActual && !done){
+      if (presetAbierto !== idFila){
+        var liA = document.createElement("li");
+        liA.className = "step-antes";
+        var lk = document.createElement("button");
+        lk.type = "button"; lk.className = "link-btn";
+        lk.textContent = "No lo registré a tiempo";
+        lk.addEventListener("click", function(){ presetAbierto = idFila; renderBomba(); });
+        liA.appendChild(lk);
+        ol.appendChild(liA);
+      } else {
+        var liP = document.createElement("li");
+        liP.className = "preset-row";
+        [5, 10, 15, 30].forEach(function(min){
+          var pb = document.createElement("button");
+          pb.type = "button"; pb.className = "preset-btn";
+          pb.textContent = "Hace " + min + " min";
+          pb.addEventListener("click", function(){ onRegistrar(min); });
+          liP.appendChild(pb);
+        });
+        var lc = document.createElement("button");
+        lc.type = "button"; lc.className = "link-btn";
+        lc.textContent = "Cancelar";
+        lc.addEventListener("click", function(){ presetAbierto = ""; renderBomba(); });
+        liP.appendChild(lc);
+        ol.appendChild(liP);
+      }
+    }
+  }
+
+  function valorDe(obj, key){ return obj && obj[key] ? String(obj[key]) : ""; }
+
+  function renderServicio(){
+    var s = servicioActual;
+    document.getElementById("svcPedido").textContent = s.Pedido;
+    var inputRem = document.getElementById("inputRemisionBomba");
+    if (document.activeElement !== inputRem) inputRem.value = s.RemisionBomba ? String(s.RemisionBomba) : "";
+
+    var ol = document.getElementById("svcSteps");
+    ol.innerHTML = "";
+    HORAS_SERVICIO.forEach(function(h, i){
+      var previoListo = i === 0 ? true : !!valorDe(s, HORAS_SERVICIO[i - 1].key);
+      var esActual = !valorDe(s, h.key) && previoListo;
+      agregarPaso(ol, i + 1, h.label, valorDe(s, h.key), esActual, "svc:" + h.key, function(min){
+        registrarHoraServicio(h.key, min);
+      });
+    });
+
+    var esExterno = s.Servicio === "Externos";
+    document.getElementById("bloqueExternos").hidden = !esExterno;
+    document.getElementById("notaNuestra").hidden = esExterno;
+    if (esExterno) renderLineas();
+  }
+
+  function renderLineas(){
+    var cont = document.getElementById("listaLineas");
+    cont.innerHTML = "";
+    lineas.forEach(function(l){
+      var box = document.createElement("div");
+      box.className = "linea-box";
+      box.style.marginBottom = "10px";
+      var head = document.createElement("div");
+      head.className = "linea-head";
+      var t = document.createElement("div");
+      t.className = "t";
+      t.textContent = l.Mixer ? String(l.Mixer) : "Mixer externo";
+      var sub = document.createElement("div");
+      sub.className = "s";
+      var partes = [String(l.m3) + " m³"];
+      if (l.Remision) partes.push("Rem. " + l.Remision);
+      sub.textContent = partes.join(" · ");
+      head.appendChild(t); head.appendChild(sub);
+      box.appendChild(head);
+      var ol = document.createElement("ol");
+      ol.className = "steps";
+      HITOS_BOMBA.forEach(function(h, i){
+        var previoListo = i === 0 ? true : !!valorDe(l, HITOS_BOMBA[i - 1].key);
+        var esActual = !valorDe(l, h.key) && previoListo;
+        agregarPaso(ol, i + 1, h.label, valorDe(l, h.key), esActual, "lin:" + l.Linea + ":" + h.key, function(min){
+          registrarHitoLinea(l.Linea, h.key, min);
+        });
+      });
+      box.appendChild(ol);
+      var quitar = document.createElement("div");
+      quitar.className = "cancel-wrap";
+      var qb = document.createElement("button");
+      qb.type = "button"; qb.className = "link-btn";
+      qb.textContent = "Quitar este mixer";
+      qb.addEventListener("click", function(){ quitarLinea(l.Linea); });
+      quitar.appendChild(qb);
+      box.appendChild(quitar);
+      cont.appendChild(box);
+    });
+  }
+
+  function ejecutarBomba(payload, alTerminar){
+    if (ocupadoBomba) return;
+    ocupadoBomba = true;
+    enviar(payload).then(function(res){
+      ocupadoBomba = false;
+      if (res && res.ok){ alTerminar(res); }
+      else showToast("No se pudo registrar: " + (res && res.error ? res.error : "error desconocido"));
+    }).catch(function(){
+      ocupadoBomba = false;
+      showToast("Sin conexión. Verifica tu internet e intenta de nuevo.");
+    });
+  }
+
+  function isoAhora(minutosAtras){
+    return new Date(Date.now() - (minutosAtras || 0) * 60000).toISOString();
+  }
+
+  // Una hora estimada ("hace N min") no puede quedar antes del paso anterior:
+  // Excel la rechazaria al sincronizar ("fuera de orden") y el dato se
+  // perderia sin que el bombero se enterara.
+  function antesDelPaso(anteriorIso, minutos){
+    if (!anteriorIso || !minutos) return false;
+    var previo = new Date(anteriorIso).getTime();
+    return (Date.now() - minutos * 60000) < previo - 30000;
+  }
+  function avisoFueraDeOrden(anteriorIso){
+    showToast("Esa hora quedaría antes del paso anterior (" +
+      new Date(anteriorIso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }) +
+      "). Elige menos minutos.");
+  }
+
+  function registrarHoraServicio(campo, minutos){
+    var idx = HORAS_SERVICIO.map(function(h){ return h.key; }).indexOf(campo);
+    var anterior = idx > 0 ? valorDe(servicioActual, HORAS_SERVICIO[idx - 1].key) : "";
+    if (antesDelPaso(anterior, minutos)){ avisoFueraDeOrden(anterior); return; }
+    var payload = { accion: "campo_servicio_bomba", clave: servicioActual.Clave, bomba: getBomba(),
+                    campo: campo, timestamp: new Date().toISOString() };
+    if (minutos) payload.minutosAtras = minutos;
+    ejecutarBomba(payload, function(){
+      servicioActual[campo] = isoAhora(minutos);
+      presetAbierto = "";
+      renderBomba();
+    });
+  }
+
+  function registrarHitoLinea(linea, campo, minutos){
+    var idxH = HITOS_BOMBA.map(function(h){ return h.key; }).indexOf(campo);
+    var filaL = lineas.filter(function(l){ return l.Linea === linea; })[0];
+    var anteriorH = idxH > 0 ? valorDe(filaL, HITOS_BOMBA[idxH - 1].key) : "";
+    if (antesDelPaso(anteriorH, minutos)){ avisoFueraDeOrden(anteriorH); return; }
+    var payload = { accion: "hito_bomba", linea: linea, bomba: getBomba(), campo: campo,
+                    timestamp: new Date().toISOString() };
+    if (minutos) payload.minutosAtras = minutos;
+    ejecutarBomba(payload, function(){
+      lineas.forEach(function(l){ if (l.Linea === linea) l[campo] = isoAhora(minutos); });
+      presetAbierto = "";
+      renderBomba();
+    });
+  }
+
+  function quitarLinea(linea){
+    if (!confirm("¿Quitar este mixer del servicio? Los tiempos que ya se bajaron a Excel no se borran.")) return;
+    ejecutarBomba({ accion: "eliminar_linea_bomba", linea: linea }, function(){
+      lineas = lineas.filter(function(l){ return l.Linea !== linea; });
+      renderBomba();
+    });
+  }
+
+  document.getElementById("btnSoyBombero").addEventListener("click", function(){ cambiarARol("bomba"); });
+  document.getElementById("btnSoyMixer1").addEventListener("click", function(){ cambiarARol(""); });
+  document.getElementById("btnSoyMixer2").addEventListener("click", function(){ cambiarARol(""); });
+  document.getElementById("btnReintentarBombas").addEventListener("click", function(){ cargarBombas(); });
+
+  elBtnGuardarBomba.addEventListener("click", function(){
+    var v = elInputBomba.value;
+    if (!v){ showToast("Selecciona tu bomba de la lista."); return; }
+    setBomba(v);
+    renderBomba();
+    cargarServicios();
+  });
+
+  document.getElementById("btnActualizarServicios").addEventListener("click", function(){ cargarServicios(); });
+
+  document.getElementById("btnVolverServicios").addEventListener("click", function(){
+    servicioActual = null;
+    lineas = [];
+    presetAbierto = "";
+    localStorage.removeItem(LS_SERVICIO);
+    renderBomba();
+    cargarServicios();
+  });
+
+  document.getElementById("btnCrearExterno").addEventListener("click", function(){
+    var pedido = document.getElementById("inputPedidoExterno").value.trim();
+    var cliente = document.getElementById("inputClienteExterno").value.trim();
+    if (!pedido){ showToast("Escribe el Pedido MBE del servicio."); return; }
+    ejecutarBomba({ accion: "crear_servicio_bomba", bomba: getBomba(), pedido: pedido, cliente: cliente }, function(res){
+      document.getElementById("inputPedidoExterno").value = "";
+      document.getElementById("inputClienteExterno").value = "";
+      cargarServicios().then(function(){ abrirServicio(res.clave); });
+    });
+  });
+
+  document.getElementById("btnGuardarRemisionBomba").addEventListener("click", function(){
+    var valor = document.getElementById("inputRemisionBomba").value.trim();
+    ejecutarBomba({ accion: "campo_servicio_bomba", clave: servicioActual.Clave, bomba: getBomba(),
+                    campo: "RemisionBomba", valor: valor }, function(){
+      servicioActual.RemisionBomba = valor;
+      renderBomba();
+    });
+  });
+
+  document.getElementById("btnAgregarMixer").addEventListener("click", function(){
+    var mixer = document.getElementById("inputMixerExterno").value.trim();
+    var m3 = document.getElementById("inputM3Externo").value.trim().replace(",", ".");
+    var remision = document.getElementById("inputRemisionExterno").value.trim();
+    if (!(Number(m3) > 0)){ showToast("Escribe los m³ del mixer (mayores a cero)."); return; }
+    var linea = idUnico();
+    ejecutarBomba({ accion: "crear_linea_bomba", linea: linea, clave: servicioActual.Clave, bomba: getBomba(),
+                    mixer: mixer, m3: m3, remision: remision, timestamp: new Date().toISOString() }, function(){
+      lineas.push({ Linea: linea, Clave: servicioActual.Clave, Mixer: mixer, Remision: remision, m3: Number(m3) });
+      document.getElementById("inputMixerExterno").value = "";
+      document.getElementById("inputM3Externo").value = "";
+      document.getElementById("inputRemisionExterno").value = "";
+      presetAbierto = "";
+      renderBomba();
+    });
+  });
+
   render();
-  cargarMixers();
+  if (getRol() === "bomba"){
+    if (!getBomba()) cargarBombas(); else cargarServicios();
+  } else {
+    cargarMixers();
+  }
 })();
 </script>
 </body>
