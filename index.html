@@ -325,6 +325,8 @@
     font-weight:700; font-size:14px; cursor:pointer;
   }
   button.secondary:disabled{ opacity:.6; cursor:default; }
+  button.secondary.ok{ background:var(--success-bg); color:var(--success); border-color:var(--success); }
+  button.secondary.enviando{ background:var(--accent-dim); color:var(--accent); border-color:var(--accent); }
   .row-2{ display:flex; gap:10px; }
   .row-2 > *{ flex:1 1 0; min-width:0; }
   .linea-box{ border:1px solid var(--border); border-radius:12px; padding:12px; background:var(--surface-2); display:flex; flex-direction:column; gap:10px; }
@@ -903,18 +905,24 @@
   var LS_BOMBA = "captura_viajes_bomba";
   var LS_SERVICIO = "captura_viajes_servicio";
 
+  // Los ocho pasos de la bomba en un servicio, en el orden en que ocurren.
   var HORAS_SERVICIO = [
-    { key: "ServicioListo",  label: "Servicio listo en obra" },
-    { key: "InicioServicio", label: "Inicio del servicio" }
+    { key: "SalidaPlanta",           label: "Salida de planta" },
+    { key: "LlegadaObra",            label: "Llegada a obra" },
+    { key: "ServicioListo",          label: "Servicio listo en obra" },
+    { key: "InicioServicio",         label: "Inicio del servicio" },
+    { key: "InicioPrimeraDescarga",  label: "Inicia la primera descarga" },
+    { key: "TerminaUltimaDescarga",  label: "Termina la última descarga" },
+    { key: "SaleObra",               label: "Sale de obra" },
+    { key: "RegresaPlanta",          label: "Regresa a planta" }
   ];
   var HITOS_BOMBA = [
     { key: "SalidaPlanta",    label: "Salida de planta" },
     { key: "LlegadaObra",     label: "Llegada a obra" },
     { key: "InicioDescarga",  label: "Inicia descarga" },
     { key: "TerminaDescarga", label: "Termina descarga" },
-    { key: "SaleObra",        label: "Sale de obra" },
-    { key: "RegresaPlanta",   label: "Regresa a planta" }
-  ];
+    { key: "SaleObra",        label: "Sale de obra" }
+  ];   // sin "Regresa a planta": el regreso de un mixer externo no lo controlamos
 
   var elScreenBomba = document.getElementById("screenBomba");
   var elScreenServicios = document.getElementById("screenServicios");
@@ -1166,6 +1174,7 @@
     document.getElementById("svcPedido").textContent = s.Pedido;
     var inputRem = document.getElementById("inputRemisionBomba");
     if (document.activeElement !== inputRem) inputRem.value = s.RemisionBomba ? String(s.RemisionBomba) : "";
+    actualizarBotonRemision(false);
 
     var ol = document.getElementById("svcSteps");
     ol.innerHTML = "";
@@ -1224,16 +1233,20 @@
     });
   }
 
-  function ejecutarBomba(payload, alTerminar){
+  function ejecutarBomba(payload, alTerminar, alFallar){
     if (ocupadoBomba) return;
     ocupadoBomba = true;
     enviar(payload).then(function(res){
       ocupadoBomba = false;
       if (res && res.ok){ alTerminar(res); }
-      else showToast("No se pudo registrar: " + (res && res.error ? res.error : "error desconocido"));
+      else {
+        showToast("No se pudo registrar: " + (res && res.error ? res.error : "error desconocido"));
+        if (alFallar) alFallar();
+      }
     }).catch(function(){
       ocupadoBomba = false;
       showToast("Sin conexión. Verifica tu internet e intenta de nuevo.");
+      if (alFallar) alFallar();
     });
   }
 
@@ -1328,13 +1341,33 @@
     });
   });
 
+  // El boton dice lo que pasa: "Guardar" (hay un cambio sin guardar),
+  // "Guardando…" (enviando) y "✓ Guardado" en verde (lo que se ve en el campo
+  // es lo que tiene el puente).
+  function actualizarBotonRemision(enviando){
+    var btn = document.getElementById("btnGuardarRemisionBomba");
+    var val = document.getElementById("inputRemisionBomba").value.trim();
+    var guardada = servicioActual && servicioActual.RemisionBomba ? String(servicioActual.RemisionBomba) : "";
+    if (enviando){
+      btn.className = "secondary enviando"; btn.textContent = "Guardando…"; btn.disabled = true;
+      return;
+    }
+    btn.disabled = false;
+    var ok = !!guardada && val === guardada;
+    btn.className = ok ? "secondary ok" : "secondary";
+    btn.textContent = ok ? "✓ Guardado" : "Guardar";
+  }
+  document.getElementById("inputRemisionBomba").addEventListener("input", function(){ actualizarBotonRemision(false); });
+
   document.getElementById("btnGuardarRemisionBomba").addEventListener("click", function(){
     var valor = document.getElementById("inputRemisionBomba").value.trim();
+    if (!valor){ showToast("Escribe la Remisión de la Bomba."); return; }
+    actualizarBotonRemision(true);
     ejecutarBomba({ accion: "campo_servicio_bomba", clave: servicioActual.Clave, bomba: getBomba(),
                     campo: "RemisionBomba", valor: valor }, function(){
       servicioActual.RemisionBomba = valor;
-      renderBomba();
-    });
+      actualizarBotonRemision(false);
+    }, function(){ actualizarBotonRemision(false); });
   });
 
   document.getElementById("btnAgregarMixer").addEventListener("click", function(){
