@@ -468,6 +468,9 @@
         <input type="text" id="inputRemision" placeholder="Ej. 0004327" autocomplete="off" inputmode="numeric">
       </div>
       <button class="primary" id="btnIniciarViaje" type="button">Iniciar viaje</button>
+      <div class="role-switch">
+        <button type="button" class="link-neutral" id="btnSoyBombero2">Soy operador de bomba</button>
+      </div>
     </div>
   </section>
 
@@ -1290,6 +1293,7 @@
   }
 
   document.getElementById("btnSoyBombero").addEventListener("click", function(){ cambiarARol("bomba"); });
+  document.getElementById("btnSoyBombero2").addEventListener("click", function(){ cambiarARol("bomba"); });
   document.getElementById("btnSoyMixer1").addEventListener("click", function(){ cambiarARol(""); });
   document.getElementById("btnSoyMixer2").addEventListener("click", function(){ cambiarARol(""); });
   document.getElementById("btnReintentarBombas").addEventListener("click", function(){ cargarBombas(); });
