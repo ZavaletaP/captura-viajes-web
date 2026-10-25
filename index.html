@@ -1099,7 +1099,7 @@
      externo con el Pedido MBE que generamos al venderle la bomba. En el
      servicio captura, una sola vez, la Remision de la Bomba, el servicio
      listo en obra y el inicio del servicio; en un servicio Externos agrega
-     cada mixer ajeno y toca sus seis hitos. Los mixers propios no se
+     cada mixer ajeno y toca sus tres hitos (llegada a obra, inicia y termina descarga). Los mixers propios no se
      capturan aqui: su linea la arma Excel desde el viaje.
      ============================================================ */
   var LS_ROL = "captura_viajes_rol";
@@ -1115,15 +1115,15 @@
     { key: "InicioServicio", label: "Inicio del servicio" },
     { key: "SaleObra",       label: "Sale de obra (ya desmontada)" }
   ];
-  // Pasos de cada MIXER EXTERNO. Inicia y Termina descarga son obligatorios (es cuando interactua
-  // con la bomba); los demas son opcionales y se pueden tocar en cualquier momento, sin esperar
-  // a que el mixer anterior termine. Su regreso a planta no lo controlamos.
+  // Pasos de cada MIXER EXTERNO (2026-10-25). De un mixer ajeno solo se registra su llegada a la
+  // obra y cuando descarga en nuestra bomba: lo demas (salida de planta, sale de obra, regreso) es
+  // de ellos y no lo controlamos ni lo pedimos. Inicia y Termina descarga son obligatorios (es
+  // cuando interactua con la bomba); la llegada es opcional. Se pueden tocar en cualquier momento,
+  // sin esperar a que el mixer anterior termine.
   var HITOS_BOMBA = [
-    { key: "SalidaPlanta",    label: "Salida de planta", obligatorio: false },
     { key: "LlegadaObra",     label: "Llegada a obra",   obligatorio: false },
     { key: "InicioDescarga",  label: "Inicia descarga",  obligatorio: true },
-    { key: "TerminaDescarga", label: "Termina descarga", obligatorio: true },
-    { key: "SaleObra",        label: "Sale de obra",     obligatorio: false }
+    { key: "TerminaDescarga", label: "Termina descarga", obligatorio: true }
   ];
 
   var elScreenBomba = document.getElementById("screenBomba");
