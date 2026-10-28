@@ -238,6 +238,11 @@
   }
 
   .step.locked{ opacity:.6; }
+  .step.omitido{ opacity:.45; }
+  .step.omitido .num{ background:var(--locked-bg); color:var(--locked-ink); }
+  .step.omitido .action button{ background:transparent; color:var(--locked-ink); cursor:default; font-size:12px; }
+  .aviso-traspaleo{ margin:0 0 12px; padding:10px 12px; border-radius:10px; border:1px solid var(--accent); background:var(--accent-dim); font-size:14px; }
+  .traspaleo-wrap{ text-align:center; margin-top:14px; }
   .step.locked .action button{ background:var(--locked-bg); color:var(--locked-ink); cursor:default; }
 
   .step.current{ border-color:var(--accent); background:var(--accent-dim); box-shadow:0 0 0 1px var(--accent) inset; }
@@ -522,10 +527,14 @@
           <div class="value" id="tripRemision">—</div>
         </div>
       </div>
+      <div class="aviso-traspaleo" id="avisoTraspaleo" hidden>Traspaleo: la carga de este viaje pasó a otro mixer. Solo registra tu regreso.</div>
       <ol class="steps" id="stepsList"></ol>
       <div class="trip-done-banner" id="tripDoneBanner" hidden>
         Viaje completado y registrado.
         <button class="primary" id="btnNuevoViajeDespuesDeCompletado" type="button">Registrar siguiente Remisión</button>
+      </div>
+      <div class="traspaleo-wrap" id="traspaleoWrap" hidden>
+        <button type="button" class="link-btn" id="btnTraspaleo">Me quitaron la carga (traspaleo)</button>
       </div>
       <div class="cancel-wrap" id="cancelWrap">
         <button type="button" class="link-btn" id="btnCancelarViaje">Cancelar viaje</button>
@@ -842,21 +851,32 @@
     var allDone = true;
     var currentAssigned = false;
     var currentStepObj = null;
+    var traspaleo = !!trip.traspaleo;
 
     STEPS.forEach(function(step, idx){
       var done = !!trip.pasos[step.key];
-      if (!done) allDone = false;
-
+      var omitido = false;
       var prevDone = idx === 0 ? true : !!trip.pasos[STEPS[idx-1].key];
-      var isCurrent = !done && prevDone && !currentAssigned;
+      if (traspaleo && !done){
+        // Traspaleo (2026-10-28): este mixer ya no hace Inicio ni Fin de colado. Si habia llegado a la
+        // obra registra su Salida de obra y luego su Llegada a planta; si no habia llegado, solo la
+        // Llegada a planta. Lo demas se omite.
+        var llego = !!trip.pasos.llegada;
+        if (step.key === "llegadaPlanta") prevDone = llego ? !!trip.pasos.salidaObra : true;
+        else if (step.key === "salidaObra") { prevDone = llego; omitido = !llego; }
+        else omitido = true;
+      }
+      if (!done && !omitido) allDone = false;
+
+      var isCurrent = !done && !omitido && prevDone && !currentAssigned;
       if (isCurrent) { currentAssigned = true; currentStepObj = step; }
 
       var li = document.createElement("li");
-      li.className = "step " + (done ? "done" : (isCurrent ? "current" : "locked"));
+      li.className = "step " + (done ? "done" : (omitido ? "omitido" : (isCurrent ? "current" : "locked")));
 
       var num = document.createElement("div");
       num.className = "num";
-      num.textContent = done ? "✓" : String(idx + 1);
+      num.textContent = done ? "✓" : (omitido ? "–" : String(idx + 1));
 
       var info = document.createElement("div");
       info.className = "info";
@@ -878,6 +898,9 @@
       if (done){
         btn.textContent = "✓";
         btn.disabled = true;
+      } else if (omitido){
+        btn.textContent = "No aplica";
+        btn.disabled = true;
       } else if (isCurrent){
         btn.textContent = "Registrar";
         btn.addEventListener("click", function(){ registrarPaso(step); });
@@ -895,6 +918,8 @@
 
     elTripDoneBanner.hidden = !allDone;
     elCancelWrap.hidden = allDone;
+    document.getElementById("avisoTraspaleo").hidden = !traspaleo;
+    document.getElementById("traspaleoWrap").hidden = traspaleo || allDone || !trip.pasos.despacho;
 
     // "No lo registré a tiempo": para el paso actual, ofrece registrar con
     // una hora estimada ("hace N minutos") en vez de "ahora" - para cuando
@@ -1067,6 +1092,19 @@
   document.getElementById("btnNuevoViajeDespuesDeCompletado").addEventListener("click", function(){
     presetsAbiertos = false;
     clearTrip();
+    render();
+  });
+
+  // Traspaleo (2026-10-28): al mixer que le quitan la carga, la app ya no le exige Inicio ni Fin de
+  // colado; solo registra su regreso (ver renderTrip). El otro mixer captura la MISMA Remision y el
+  // sincronizador hace el traspaleo en Excel. Es una marca local: no manda nada al puente.
+  document.getElementById("btnTraspaleo").addEventListener("click", function(){
+    var trip = getTrip();
+    if (!trip) return;
+    if (!confirm("¿Le quitaron la carga de la Remisión " + trip.remision + " (la pasaron a otro mixer)? Después de esto solo registrarás tu regreso a planta.")) return;
+    trip.traspaleo = true;
+    presetsAbiertos = false;
+    setTrip(trip);
     render();
   });
 
